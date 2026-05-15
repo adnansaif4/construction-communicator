@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%; --foreground: 222 47% 11%; --card: 0 0% 100%; --card-foreground: 222 47% 11%;
+    --primary: 36 92% 48%; --primary-foreground: 222 47% 11%; --secondary: 215 25% 27%; --secondary-foreground: 210 40% 98%;
+    --muted: 210 40% 94%; --muted-foreground: 215 16% 47%; --accent: 215 28% 17%; --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%; --destructive-foreground: 0 0% 100%; --border: 214 32% 88%; --input: 214 32% 88%; --ring: 36 92% 48%; --radius: 0.9rem;
+  }
+  .dark {
+    --background: 222 47% 7%; --foreground: 210 40% 98%; --card: 222 40% 11%; --card-foreground: 210 40% 98%;
+    --primary: 38 92% 50%; --primary-foreground: 222 47% 8%; --secondary: 216 28% 18%; --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%; --muted-foreground: 215 20% 70%; --accent: 221 39% 14%; --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 48%; --destructive-foreground: 0 0% 100%; --border: 217 33% 18%; --input: 217 33% 18%; --ring: 38 92% 50%;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+}
+
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.grid-noise { background-image: radial-gradient(rgba(100,116,139,.13) 1px, transparent 1px); background-size: 18px 18px; }
+.ptt-glow { box-shadow: 0 0 0 8px rgba(245, 158, 11, .14), 0 22px 55px rgba(245, 158, 11, .34); }
