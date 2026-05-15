@@ -23,5 +23,5 @@ export default withPWA({
   reactStrictMode: true,
   output: 'standalone',
   poweredByHeader: false,
-  experimental: { typedRoutes: true }
+  typedRoutes: true
 });
