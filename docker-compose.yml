@@ -1,0 +1,27 @@
+services:
+  web:
+    build: .
+    env_file: .env.example
+    depends_on: [postgres, redis]
+    ports: ["3000:3000"]
+  realtime:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev:realtime"
+    volumes: [".:/app"]
+    env_file: .env.example
+    depends_on: [redis]
+    ports: ["4000:4000"]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: national_engineers
+      POSTGRES_USER: national
+      POSTGRES_PASSWORD: national_dev_password
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    ports: ["5432:5432"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+volumes:
+  postgres-data:
