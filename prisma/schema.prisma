@@ -1,0 +1,90 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum RoleName { SUPER_ADMIN COMPANY_ADMIN PROJECT_MANAGER SITE_ENGINEER SUPERVISOR CRANE_OPERATOR STORE_KEEPER SAFETY_OFFICER WORKER }
+enum ChannelType { PROJECT DEPARTMENT EQUIPMENT EMERGENCY ANNOUNCEMENT DIRECT }
+enum MessagePriority { NORMAL IMPORTANT URGENT EMERGENCY }
+enum TaskStatus { PENDING IN_PROGRESS DELAYED COMPLETED REJECTED }
+enum EquipmentRequestStatus { REQUESTED ACCEPTED EN_ROUTE IN_USE COMPLETED REJECTED }
+enum AttendanceMethod { GPS QR FACE MANUAL }
+enum EmergencyStatus { OPEN ACKNOWLEDGED RESOLVED FALSE_ALARM }
+enum MediaKind { IMAGE VIDEO AUDIO PDF DOCUMENT }
+
+model Company {
+  id String @id @default(cuid())
+  name String @default("NATIONAL ENGINEERS")
+  slug String @unique
+  logoUrl String?
+  primaryColor String @default("#f59e0b")
+  users User[]
+  projects Project[]
+  departments Department[]
+  auditLogs AuditLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id String @id @default(cuid())
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  phone String
+  passwordHash String
+  displayName String
+  role RoleName
+  departmentId String?
+  department Department? @relation(fields: [departmentId], references: [id])
+  disabledAt DateTime?
+  sessions Session[]
+  devices Device[]
+  sentMessages Message[] @relation("MessageSender")
+  tasksAssigned Task[] @relation("TaskAssigner")
+  tasksOwned Task[] @relation("TaskOwner")
+  attendance Attendance[]
+  emergencyLogs EmergencyLog[]
+  notifications Notification[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([companyId, employeeId])
+  @@unique([companyId, phone])
+  @@index([companyId, role])
+}
+
+model Session { id String @id @default(cuid()) userId String user User @relation(fields: [userId], references: [id], onDelete: Cascade) refreshTokenHash String ipAddress String? userAgent String? revokedAt DateTime? expiresAt DateTime createdAt DateTime @default(now()) }
+model Device { id String @id @default(cuid()) userId String user User @relation(fields: [userId], references: [id], onDelete: Cascade) label String platform String pushEndpoint String? lastSeenAt DateTime? forceLogoutAt DateTime? createdAt DateTime @default(now()) }
+model Department { id String @id @default(cuid()) companyId String company Company @relation(fields: [companyId], references: [id], onDelete: Cascade) name String users User[] channels Channel[] @@unique([companyId, name]) }
+
+model Project {
+  id String @id @default(cuid())
+  companyId String
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name String
+  code String
+  location String
+  timezone String @default("Asia/Kolkata")
+  channels Channel[]
+  tasks Task[]
+  equipmentRequests EquipmentRequest[]
+  reports DailyReport[]
+  media MediaAsset[]
+  attendance Attendance[]
+  emergencyLogs EmergencyLog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([companyId, code])
+}
+
+model Channel { id String @id @default(cuid()) projectId String? project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade) departmentId String? department Department? @relation(fields: [departmentId], references: [id]) name String type ChannelType messages Message[] pinnedMessageId String? createdAt DateTime @default(now()) @@index([projectId, type]) }
+model Message { id String @id @default(cuid()) channelId String channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade) senderId String sender User @relation("MessageSender", fields: [senderId], references: [id]) body String? priority MessagePriority @default(NORMAL) replyToId String? media MediaAsset[] voiceNote VoiceNote? mentions Mention[] receipts ReadReceipt[] createdAt DateTime @default(now()) editedAt DateTime? @@index([channelId, createdAt]) }
+model Mention { id String @id @default(cuid()) messageId String message Message @relation(fields: [messageId], references: [id], onDelete: Cascade) targetUserId String? targetRole RoleName? targetDepartmentId String? everyone Boolean @default(false) }
+model ReadReceipt { id String @id @default(cuid()) messageId String message Message @relation(fields: [messageId], references: [id], onDelete: Cascade) userId String readAt DateTime @default(now()) @@unique([messageId, userId]) }
+model VoiceNote { id String @id @default(cuid()) messageId String @unique message Message @relation(fields: [messageId], references: [id], onDelete: Cascade) durationMs Int waveformJson Json? transcript String? storageKey String codec String @default("opus") createdAt DateTime @default(now()) }
+model MediaAsset { id String @id @default(cuid()) projectId String? project Project? @relation(fields: [projectId], references: [id]) messageId String? message Message? @relation(fields: [messageId], references: [id]) kind MediaKind storageKey String secureUrl String? contentType String byteSize Int watermark String? capturedAt DateTime? createdAt DateTime @default(now()) }
+model Task { id String @id @default(cuid()) projectId String project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) title String description String? status TaskStatus @default(PENDING) priority MessagePriority @default(NORMAL) assignerId String assigner User @relation("TaskAssigner", fields: [assignerId], references: [id]) ownerId String? owner User? @relation("TaskOwner", fields: [ownerId], references: [id]) dueAt DateTime? completedAt DateTime? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model EquipmentRequest { id String @id @default(cuid()) projectId String project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) equipmentType String location String status EquipmentRequestStatus @default(REQUESTED) requesterId String operatorId String? etaMinutes Int? notes String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model Attendance { id String @id @default(cuid()) projectId String project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) userId String user User @relation(fields: [userId], references: [id]) method AttendanceMethod lat Decimal? lng Decimal? shiftCode String checkedInAt DateTime checkedOutAt DateTime? lateMinutes Int @default(0) @@index([projectId, checkedInAt]) }
+model DailyReport { id String @id @default(cuid()) projectId String project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) supervisorId String laborCount Int materialsUsed Json delays String? issues String? weather String? voiceSummaryKey String? pdfKey String? approvedAt DateTime? createdAt DateTime @default(now()) }
+model EmergencyLog { id String @id @default(cuid()) projectId String project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) raisedById String raisedBy User @relation(fields: [raisedById], references: [id]) type String status EmergencyStatus @default(OPEN) lat Decimal? lng Decimal? audioKey String? resolvedAt DateTime? createdAt DateTime @default(now()) }
+model Notification { id String @id @default(cuid()) userId String user User @relation(fields: [userId], references: [id], onDelete: Cascade) title String body String category String data Json? readAt DateTime? createdAt DateTime @default(now()) }
+model AuditLog { id String @id @default(cuid()) companyId String company Company @relation(fields: [companyId], references: [id], onDelete: Cascade) actorUserId String? action String entity String entityId String? ipAddress String? metadata Json? createdAt DateTime @default(now()) }
