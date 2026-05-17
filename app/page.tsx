@@ -1,6 +1,5 @@
-import { MobileShell, UserPill } from '@/components/shell/mobile-shell';
-import { OpsDashboard } from '@/components/shell/dashboard';
+import { AppClient } from '@/components/shell/app-client';
 
 export default function Home() {
-  return <MobileShell><div className="mb-4"><UserPill /></div><OpsDashboard /></MobileShell>;
+  return <AppClient />;
 }
